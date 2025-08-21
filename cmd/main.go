@@ -3,14 +3,14 @@ package main
 import (
 	"fmt"
 	"go/adv-dev/configs"
-	"go/adv-dev/internal/hello"
+	"go/adv-dev/internal/auth"
 	"net/http"
 )
 
 func main() {
 	conf := configs.LoadConfig()
 	router := http.NewServeMux()
-	hello.NewHelloHandler(router)
+	auth.NewAuthHandler(router, auth.AuthHandlerDeps{Config: conf})
 
 	server := http.Server{
 		Addr:    ":8081",
