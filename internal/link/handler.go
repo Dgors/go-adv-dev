@@ -1,10 +1,11 @@
 package link
 
 import (
-	"fmt"
 	"go/adv-dev/pkg/req"
 	"go/adv-dev/pkg/res"
+	"gorm.io/gorm"
 	"net/http"
+	"strconv"
 )
 
 type linkHandler struct {
@@ -32,6 +33,13 @@ func (handler *linkHandler) create() http.HandlerFunc {
 			return
 		}
 		link := NewLink(body.Url)
+		for {
+			existedLink, _ := handler.LinkRepository.GetByHash(link.Hash)
+			if existedLink == nil {
+				break
+			}
+			link.GenerateHash()
+		}
 		createdLink, err := handler.LinkRepository.Create(link)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -55,13 +63,51 @@ func (handler *linkHandler) goTo() http.HandlerFunc {
 
 func (handler *linkHandler) update() http.HandlerFunc {
 	return func(w http.ResponseWriter, request *http.Request) {
-
+		body, err := req.HandleBody[LinkUpdateRequest](&w, request)
+		if err != nil {
+			return
+		}
+		idString := request.PathValue("id")
+		id, err := strconv.ParseUint(idString, 10, 32)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+		_, err = handler.LinkRepository.GetById(uint(id))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		link, err := handler.LinkRepository.Update(&Link{
+			Model: gorm.Model{ID: uint(id)},
+			Url:   body.Url,
+			Hash:  body.Hash,
+		})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		res.JsonResponse(w, link, 201)
 	}
 }
 
 func (handler *linkHandler) delete() http.HandlerFunc {
 	return func(w http.ResponseWriter, request *http.Request) {
-		id := request.PathValue("id")
-		fmt.Println(id)
+		idString := request.PathValue("id")
+		id, err := strconv.ParseUint(idString, 10, 32)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		_, err = handler.LinkRepository.GetById(uint(id))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		err = handler.LinkRepository.Delete(uint(id))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		res.JsonResponse(w, nil, 200)
 	}
 }
