@@ -1,3 +1,5 @@
 /postgres-data
 /.env
 /cmd/test.go
+/pkg/middleware/*.txt
+/*.exe

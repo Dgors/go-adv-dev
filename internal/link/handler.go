@@ -1,6 +1,7 @@
 package link
 
 import (
+	"go/adv-dev/pkg/middleware"
 	"go/adv-dev/pkg/req"
 	"go/adv-dev/pkg/res"
 	"gorm.io/gorm"
@@ -22,7 +23,7 @@ func NewLinkHandler(router *http.ServeMux, deps LinkHandlerDeps) {
 	}
 	router.HandleFunc("POST /link/create", handler.create())
 	router.HandleFunc("GET /{hash}", handler.goTo())
-	router.HandleFunc("PATCH /link/{id}", handler.update())
+	router.Handle("PATCH /link/{id}", middleware.IsAuthed(handler.update()))
 	router.HandleFunc("DELETE /link/{id}", handler.delete())
 }
 
@@ -71,6 +72,7 @@ func (handler *linkHandler) update() http.HandlerFunc {
 		id, err := strconv.ParseUint(idString, 10, 32)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
 		}
 		_, err = handler.LinkRepository.GetById(uint(id))
 		if err != nil {
