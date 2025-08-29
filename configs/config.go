@@ -29,7 +29,7 @@ func LoadConfig() *Config {
 			Dsn: os.Getenv("DB_DSN"),
 		},
 		Auth: AuthConfig{
-			Secret: os.Getenv("TOKEN"),
+			Secret: os.Getenv("SECRET"),
 		},
 	}
 
