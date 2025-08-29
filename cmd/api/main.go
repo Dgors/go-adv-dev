@@ -9,6 +9,7 @@ import (
 	"go/adv-dev/pkg/db"
 	"go/adv-dev/pkg/middleware"
 	"net/http"
+	"time"
 )
 
 func main() {
@@ -34,8 +35,9 @@ func main() {
 	stack := middleware.Chain(middleware.CORS, middleware.Logging)
 
 	server := http.Server{
-		Addr:    ":8081",
-		Handler: stack(router),
+		Addr:         ":8081",
+		Handler:      stack(router),
+		WriteTimeout: 60 * time.Minute,
 	}
 
 	fmt.Println("server is listening on port 8081")
