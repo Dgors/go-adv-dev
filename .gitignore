@@ -3,3 +3,4 @@
 /cmd/test.go
 /pkg/middleware/*.txt
 /*.exe
+/cmd/api/.env

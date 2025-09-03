@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func main() {
+func App() http.Handler {
 	conf := configs.LoadConfig()
 	newDb := db.NewDb(conf)
 	router := http.NewServeMux()
@@ -48,16 +48,20 @@ func main() {
 		Config:         conf,
 	})
 
+	go statService.AddClick()
 	// Middlewares
 	stack := middleware.Chain(middleware.CORS, middleware.Logging)
 
+	return stack(router)
+}
+
+func main() {
+	app := App()
 	server := http.Server{
 		Addr:         ":8081",
-		Handler:      stack(router),
-		WriteTimeout: 60 * time.Minute,
+		Handler:      app,
+		WriteTimeout: 15 * time.Second,
 	}
-
-	go statService.AddClick()
 
 	fmt.Println("server is listening on port 8081")
 	err := server.ListenAndServe()
