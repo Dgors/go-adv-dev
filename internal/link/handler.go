@@ -7,9 +7,10 @@ import (
 	"go/adv-dev/pkg/middleware"
 	"go/adv-dev/pkg/req"
 	"go/adv-dev/pkg/res"
-	"gorm.io/gorm"
 	"net/http"
 	"strconv"
+
+	"gorm.io/gorm"
 )
 
 type linkHandler struct {
@@ -66,7 +67,6 @@ func (handler *linkHandler) goTo() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
-		//handler.StatRepository.AddClick(link.ID)
 		go handler.EventBus.Publish(event.Event{
 			Type: event.EventLinkVisited,
 			Data: link.ID,
