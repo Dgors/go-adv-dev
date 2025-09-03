@@ -3,6 +3,7 @@ package link
 import (
 	"fmt"
 	"go/adv-dev/configs"
+	"go/adv-dev/pkg/event"
 	"go/adv-dev/pkg/middleware"
 	"go/adv-dev/pkg/req"
 	"go/adv-dev/pkg/res"
@@ -13,21 +14,25 @@ import (
 
 type linkHandler struct {
 	LinkRepository *LinkRepository
+	EventBus       *event.EventBus
 }
 
 type LinkHandlerDeps struct {
 	LinkRepository *LinkRepository
 	Config         *configs.Config
+	EventBus       *event.EventBus
 }
 
 func NewLinkHandler(router *http.ServeMux, deps LinkHandlerDeps) {
 	handler := &linkHandler{
 		LinkRepository: deps.LinkRepository,
+		EventBus:       deps.EventBus,
 	}
 	router.HandleFunc("POST /link/create", handler.create())
 	router.HandleFunc("GET /{hash}", handler.goTo())
 	router.Handle("PATCH /link/{id}", middleware.IsAuthed(handler.update(), deps.Config))
 	router.HandleFunc("DELETE /link/{id}", handler.delete())
+	router.Handle("GET /link", middleware.IsAuthed(handler.getAll(), deps.Config))
 }
 
 func (handler *linkHandler) create() http.HandlerFunc {
@@ -61,6 +66,11 @@ func (handler *linkHandler) goTo() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
+		//handler.StatRepository.AddClick(link.ID)
+		go handler.EventBus.Publish(event.Event{
+			Type: event.EventLinkVisited,
+			Data: link.ID,
+		})
 		http.Redirect(w, request, link.Url, http.StatusTemporaryRedirect)
 	}
 }
@@ -118,5 +128,27 @@ func (handler *linkHandler) delete() http.HandlerFunc {
 			return
 		}
 		res.JsonResponse(w, nil, 200)
+	}
+}
+
+func (handler *linkHandler) getAll() http.HandlerFunc {
+	return func(w http.ResponseWriter, request *http.Request) {
+		limit, err := strconv.Atoi(request.URL.Query().Get("limit"))
+		if err != nil {
+			http.Error(w, "Invalid limit", http.StatusBadRequest)
+			return
+		}
+		offset, err := strconv.Atoi(request.URL.Query().Get("offset"))
+		if err != nil {
+			http.Error(w, "Invalid offset", http.StatusBadRequest)
+			return
+		}
+		links := handler.LinkRepository.GetAll(limit, offset)
+		count := handler.LinkRepository.Count()
+		data := getAllLinksResponse{
+			Links: links,
+			Count: count,
+		}
+		res.JsonResponse(w, data, http.StatusOK)
 	}
 }
