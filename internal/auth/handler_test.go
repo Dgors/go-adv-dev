@@ -3,16 +3,17 @@ package auth_test
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/DATA-DOG/go-sqlmock"
 	"go/adv-dev/configs"
 	"go/adv-dev/internal/auth"
 	"go/adv-dev/internal/user"
 	"go/adv-dev/pkg/db"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 func bootstrap() (*auth.AuthHandler, sqlmock.Sqlmock, error) {
@@ -40,7 +41,7 @@ func bootstrap() (*auth.AuthHandler, sqlmock.Sqlmock, error) {
 	return &handler, mock, nil
 }
 
-func TestLoginSuccess(t *testing.T) {
+func TestLoginHandlerSuccess(t *testing.T) {
 	handler, mock, err := bootstrap()
 	rows := sqlmock.NewRows([]string{"email", "password"}).
 		AddRow("test@test.com", "$2a$10$IHRW1kLDSR4yDZm0SyHb9.mfKvtMDGUDHTvKOEoj3DfnxRC9uvyL.")
@@ -59,5 +60,30 @@ func TestLoginSuccess(t *testing.T) {
 	handler.Login()(w, req)
 	if w.Code != http.StatusOK {
 		t.Errorf("login: got %d, want %d", w.Result().StatusCode, http.StatusOK)
+	}
+}
+
+func TestRegisterHandlerSuccess(t *testing.T) {
+	handler, mock, err := bootstrap()
+	rows := sqlmock.NewRows([]string{"email", "password", "name"})
+	mock.ExpectQuery("SELECT").WillReturnRows(rows)
+	mock.ExpectBegin()
+	mock.ExpectQuery("INSERT").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectCommit()
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, _ := json.Marshal(&auth.RegisterRequest{
+		Email:    "test@test.com",
+		Password: "test1234",
+		Name:     "test",
+	})
+	reader := bytes.NewReader(data)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/auth/register", reader)
+	handler.Register()(w, req)
+	if w.Code != http.StatusCreated {
+		t.Errorf("login: got %d, want %d", w.Result().StatusCode, http.StatusCreated)
 	}
 }
