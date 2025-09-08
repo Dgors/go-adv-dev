@@ -22,11 +22,11 @@ func NewAuthHandler(router *http.ServeMux, deps AuthHandlerDeps) {
 		Config:      deps.Config,
 		AuthService: deps.AuthService,
 	}
-	router.HandleFunc("POST /auth/login", handler.login())
-	router.HandleFunc("POST /auth/register", handler.register())
+	router.HandleFunc("POST /auth/login", handler.Login())
+	router.HandleFunc("POST /auth/register", handler.Register())
 }
 
-func (handler *AuthHandler) login() http.HandlerFunc {
+func (handler *AuthHandler) Login() http.HandlerFunc {
 	return func(w http.ResponseWriter, request *http.Request) {
 		body, err := req.HandleBody[LoginRequest](&w, request)
 		if err != nil {
@@ -49,7 +49,7 @@ func (handler *AuthHandler) login() http.HandlerFunc {
 	}
 }
 
-func (handler *AuthHandler) register() http.HandlerFunc {
+func (handler *AuthHandler) Register() http.HandlerFunc {
 	return func(w http.ResponseWriter, request *http.Request) {
 		body, err := req.HandleBody[RegisterRequest](&w, request)
 		if err != nil {
